@@ -1,0 +1,9 @@
+[submodule "tornado"]
+	path = tornado
+	url = git://github.com/kzahel/tornado_gen.git
+[submodule "dht_tornado"]
+	path = dht_tornado
+	url = git@github.com:bbarrows/dht_tornado.git
+[submodule "ktorrent"]
+	path = ktorrent
+	url = git://github.com/kzahel/ktorrent.git
