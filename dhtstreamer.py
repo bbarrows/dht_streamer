@@ -12,7 +12,7 @@ import tornado.web
 import tornado.httpserver
 from tornado import httpclient
 
-from ktorrent.frontend import IndexHandler, StatusHandler, APIHandler, PingHandler, VersionHandler, BtappHandler, PairHandler, request_logger, ProxyHandler, WebSocketProtocolHandler, GUIHandler, WebSocketProxyHandler, WebSocketIncomingProxyHandler, WebSocketUDPProxyHandler
+from ktorrent.frontend import BaseHandler, IndexHandler, StatusHandler, APIHandler, PingHandler, VersionHandler, BtappHandler, PairHandler, request_logger, ProxyHandler, WebSocketProtocolHandler, GUIHandler, WebSocketProxyHandler, WebSocketIncomingProxyHandler, WebSocketUDPProxyHandler
 
 from ktorrent.handlers import BitmaskHandler,\
     UTHandler,\
@@ -28,6 +28,7 @@ from ktorrent.handlers import BitmaskHandler,\
     PieceHandler,\
     HaveAllHandler
 
+client = None
 home = os.getenv("HOME")
 
 define('debug',default=True, type=bool) # save file causes autoreload
@@ -36,7 +37,6 @@ define('bootstrap_torrent',default="", type=str)
 
 define('asserts',default=True, type=bool)
 define('verbose',default=1, type=int)
-define('host',default='10.10.90.24', type=str)
 
 define('port',default=8030, type=int)
 define('frontend_port',default=10000, type=int)
@@ -125,6 +125,13 @@ class BTProtocolServer(tornado.netutil.TCPServer):
         #Connection(stream, address, self.request_callback)
 
 
+class AddPeerHandler(BaseHandler):
+    def get(self):
+        hash = self.get_argument("hash")
+        host = self.get_argument("host")
+        port = self.get_argument("port")
+        if client and hash:
+            client.connect(host, port, hash.decode("hex"))
 
 
 def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
@@ -169,8 +176,9 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
 
 
     Client.resume()
-    Client.http_client = httpclient.AsyncHTTPClient()
     client = Client.instances[0]
+    Client.http_client = httpclient.AsyncHTTPClient()
+    
 
     Torrent.client = client
 
