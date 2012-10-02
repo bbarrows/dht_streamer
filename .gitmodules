@@ -7,3 +7,6 @@
 [submodule "ktorrent"]
 	path = ktorrent
 	url = git://github.com/kzahel/ktorrent.git
+[submodule "dht_bootstrapper"]
+	path = dht_bootstrapper
+	url = git@github.com:bbarrows/dht_bootstrapper.git
