@@ -193,8 +193,10 @@ if __name__ == "__main__":
 
     #Startup the dht with some bootstrap ports
     bootstrap_ip_ports = []
-    for ip_port in options.bootstrap.split(","):
-        bootstrap_ip_ports.append(ip_port.split(':'))
+    if options.bootstrap != "":
+        for ip_port in options.bootstrap.split(","):
+            ip_port_arr = ip_port.split(':')
+            bootstrap_ip_ports.append((ip_port_arr[0],ip_port_arr[1]))
 
     if len(bootstrap_ip_ports) == 0:
         bht.get_dht_peers_from_torrent(options.bootstrap_torrent or "bootstrap.torrent", partial(let_the_streaming_begin, io_loop))
