@@ -1,4 +1,4 @@
-from dht_tornado import dht
+from dht_tornado.dht import DHT
 from dht_bootstrapper import bht
 from functools import partial
 import sys, re, random, thread, threading, os, re
@@ -129,7 +129,7 @@ class BTProtocolServer(tornado.netutil.TCPServer):
 
 def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     #Setup the DHT
-    dht = dht.DHT(51414, bootstrap_ip_ports, io_loop = io_loop)
+    dht = DHT(51414, bootstrap_ip_ports, io_loop = io_loop)
     dht.start()
 
 
@@ -187,7 +187,7 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
 
 if __name__ == "__main__":
     io_loop = tornado.ioloop.IOLoop()
-    io_loop.install()
+    #io_loop.install()
 
     tornado.options.parse_command_line()
 
