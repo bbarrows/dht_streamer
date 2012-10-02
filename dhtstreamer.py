@@ -12,8 +12,9 @@ import tornado.web
 import tornado.httpserver
 from tornado import httpclient
 
+from ktorrent.frontend import IndexHandler, StatusHandler, APIHandler, PingHandler, VersionHandler, BtappHandler, PairHandler, request_logger, ProxyHandler, WebSocketProtocolHandler, GUIHandler, WebSocketProxyHandler, WebSocketIncomingProxyHandler, WebSocketUDPProxyHandler
 
-from handlers import BitmaskHandler,\
+from ktorrent.handlers import BitmaskHandler,\
     UTHandler,\
     NullHandler,\
     HaveHandler,\
@@ -27,13 +28,12 @@ from handlers import BitmaskHandler,\
     PieceHandler,\
     HaveAllHandler
 
+home = os.getenv("HOME")
 
 define('debug',default=True, type=bool) # save file causes autoreload
-define('frontend_port',default=7070, type=int)
 define('bootstrap',default="", type=str)
 define('bootstrap_torrent',default="", type=str)
-home = os.getenv("HOME")
-define('debug',default=True, type=bool)
+
 define('asserts',default=True, type=bool)
 define('verbose',default=1, type=int)
 define('host',default='10.10.90.24', type=str)
