@@ -1,4 +1,5 @@
 from dht_tornado.dht import DHT
+from dht_tornado import dhttornado #ComplexEncoder, IndexHandler
 from dht_bootstrapper import bht
 from functools import partial
 import sys, re, random, thread, threading, os, re
@@ -31,9 +32,11 @@ from ktorrent.handlers import BitmaskHandler,\
     PieceHandler,\
     HaveAllHandler
 
-client = None
-
 home = os.getenv("HOME")
+
+
+define('dht_frontend_port',default=7070, type=int)
+
 
 define('debug',default=True, type=bool) # save file causes autoreload
 define('bootstrap',default="", type=str)
@@ -44,9 +47,9 @@ define('verbose',default=1, type=int)
 
 define('port',default=8030, type=int)
 define('frontend_port',default=10000, type=int)
-define('datapath',default=os.path.join(home,'ktorrent/data'), type=str)
+define('datapath',default=home, type=str)
 define('static_path',default=os.path.join(home,'ktorrent/static'), type=str)
-define('resume_file',default=os.path.join(home,'ktorrent/resume.dat'), type=str)
+define('resume_file',default=os.path.join(home,'resume.dat'), type=str)
 define('template_path',default=os.path.join(home,'ktorrent/templates'), type=str)
 
 define('tracker_proxy',default='http://127.0.0.1:6969', type=str)
@@ -60,38 +63,7 @@ define('startup_exit_on_close', default=False, help='quit program when connectio
 define('outbound_piece_limit',default=20, type=int)
 define('piece_request_timeout',default=10, type=int)
 
-
-frontend_routes = [
-    ('/?', IndexHandler),
-    ('/static/.?', tornado.web.StaticFileHandler),
-    ('/gui/pingimg', PingHandler),
-    ('/gui/pair/?', PairHandler),
-    ('/gui/?', GUIHandler),
-    ('/proxy/?', ProxyHandler),
-    ('/version/?', VersionHandler),
-    ('/statusv2/?', StatusHandler),
-    ('/wsclient/?', WebSocketProtocolHandler),
-    ('/wsproxy/?', WebSocketProxyHandler),
-    ('/wsincomingproxy/?', WebSocketIncomingProxyHandler),
-#    ('/wstrackerproxy/?', WebSocketTrackerProxyHandler),
-    ('/wsudpproxy/?', WebSocketUDPProxyHandler),
-    ('/api/?', APIHandler),
-    ('/btapp/?', BtappHandler)
-]
-
-routes = { 'BITFIELD': BitmaskHandler,
-           'UTORRENT_MSG': UTHandler,
-           'PORT': PortHandler,
-           'HAVE': HaveHandler,
-           'HAVE_ALL': HaveAllHandler,
-           'INTERESTED': InterestedHandler,
-           'NOT_INTERESTED': NotInterestedHandler,
-           'CHOKE': ChokeHandler,
-           'UNCHOKE': UnChokeHandler,
-           'REQUEST': RequestHandler,
-           'CANCEL': CancelHandler,
-           'PIECE': PieceHandler
-           }
+dht = None
 
 class BTApplication(object):
     def __init__(self, routes, **settings):
@@ -125,23 +97,70 @@ class BTProtocolServer(tornado.netutil.TCPServer):
         self.request_callback = request_callback
 
     def handle_stream(self, stream, address):
-        client.handle_connection(stream, address, self.request_callback)
+        Client.instances[0].handle_connection(stream, address, self.request_callback)
         #Connection(stream, address, self.request_callback)
 
+def add_peers(info_hash, new_peers, all_peers):
+    client = Client.instances[0]
+    if client and hash:
+        for p in new_peers:
+            if len(Connection.instances) < 50:
+                client.connect(p[0], p[1], info_hash)
 
 class AddPeerHandler(BaseHandler):
     def get(self):
-        hash = self.get_argument("hash")
-        host = self.get_argument("host")
-        port = self.get_argument("port")
-        if client and hash:
-            client.connect(host, port, hash.decode("hex"))
+        #import pdb; pdb.set_trace()
+        info_hash =str(self.get_argument("hash"))
+        if not dht.get_peers_callbacks.has_key(info_hash):
+            dht.get_peers(info_hash.decode("hex"), callback = add_peers)
+        else:
+            dht.get_peers(info_hash.decode("hex"))
+        #host = self.get_argument("host")
+        #port = self.get_argument("port")
+        #client = Client.instances[0]
+        #if client and hash:
+        #    client.connect(host, port, hash.decode("hex"))
+
+
+
+frontend_routes = [
+    ('/?', IndexHandler),
+    ('/static/.?', tornado.web.StaticFileHandler),
+    ('/gui/pingimg', PingHandler),
+    ('/gui/pair/?', PairHandler),
+    ('/gui/?', GUIHandler),
+    ('/proxy/?', ProxyHandler),
+    ('/version/?', VersionHandler),
+    ('/statusv2/?', StatusHandler),
+    ('/wsclient/?', WebSocketProtocolHandler),
+    ('/wsproxy/?', WebSocketProxyHandler),
+    ('/wsincomingproxy/?', WebSocketIncomingProxyHandler),
+#    ('/wstrackerproxy/?', WebSocketTrackerProxyHandler),
+    ('/wsudpproxy/?', WebSocketUDPProxyHandler),
+    ('/api/?', APIHandler),
+    ('/btapp/?', BtappHandler),
+    ('/addhash/?', AddPeerHandler)
+]
+
+routes = { 'BITFIELD': BitmaskHandler,
+           'UTORRENT_MSG': UTHandler,
+           'PORT': PortHandler,
+           'HAVE': HaveHandler,
+           'HAVE_ALL': HaveAllHandler,
+           'INTERESTED': InterestedHandler,
+           'NOT_INTERESTED': NotInterestedHandler,
+           'CHOKE': ChokeHandler,
+           'UNCHOKE': UnChokeHandler,
+           'REQUEST': RequestHandler,
+           'CANCEL': CancelHandler,
+           'PIECE': PieceHandler
+           }
 
 
 def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     #Setup the DHT
+    global dht
     dht = DHT(51414, bootstrap_ip_ports, io_loop = io_loop)
-    dht.start()
 
     #Setup KTorrent and Its URL Handlers
     settings = dict( (k, v.value()) for k,v in options.items() )
@@ -192,6 +211,22 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
 
     signal.signal(signal.SIGINT, got_interrupt_signal)
 
+
+    settings = dict( (k, v.value()) for k,v in options.items() )
+
+    dht_frontend_routes = [
+        ('/?', dhttornado.IndexHandler),
+    ]
+    dht_frontend_application = tornado.web.Application(dht_frontend_routes, **settings)
+    dht_frontend_server = tornado.httpserver.HTTPServer(dht_frontend_application, io_loop=io_loop)
+    dht_frontend_server.bind(options.dht_frontend_port, '')
+    dht_frontend_server.start()    
+
+    dhttornado.IndexHandler.register_dht(dht)
+
+    dht.bootstrap()
+    dht.start()  #This also does io_loop.start()
+    #io_loop.start()
 
 
 
