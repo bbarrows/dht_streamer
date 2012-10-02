@@ -11,6 +11,9 @@ from tornado.options import define, options
 import tornado.web
 import tornado.httpserver
 from tornado import httpclient
+from ktorrent.connection import Connection
+from ktorrent.client import Client
+from ktorrent.torrent import Torrent
 
 from ktorrent.frontend import BaseHandler, IndexHandler, StatusHandler, APIHandler, PingHandler, VersionHandler, BtappHandler, PairHandler, request_logger, ProxyHandler, WebSocketProtocolHandler, GUIHandler, WebSocketProxyHandler, WebSocketIncomingProxyHandler, WebSocketUDPProxyHandler
 
@@ -29,6 +32,7 @@ from ktorrent.handlers import BitmaskHandler,\
     HaveAllHandler
 
 client = None
+
 home = os.getenv("HOME")
 
 define('debug',default=True, type=bool) # save file causes autoreload
@@ -139,7 +143,6 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     dht = DHT(51414, bootstrap_ip_ports, io_loop = io_loop)
     dht.start()
 
-
     #Setup KTorrent and Its URL Handlers
     settings = dict( (k, v.value()) for k,v in options.items() )
     application = BTApplication(routes, **settings)
@@ -167,6 +170,11 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     logging.info('\n\n')    
   
 
+    Client.resume()
+    client = Client.instances[0]
+    Client.http_client = httpclient.AsyncHTTPClient()  
+    Torrent.client = client
+
     tornado.ioloop.PeriodicCallback( Connection.make_piece_request, 1000 * 1, io_loop=io_loop ).start()
     tornado.ioloop.PeriodicCallback( Connection.get_metainfo, 1000 * 1, io_loop=io_loop ).start() # better to make event driven
     tornado.ioloop.PeriodicCallback( Client.tick, 1000 * 1, io_loop=io_loop ).start()
@@ -175,12 +183,6 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     tornado.ioloop.PeriodicCallback( Connection.cleanup_old_requests, 1000 * 1, io_loop=io_loop ).start()
 
 
-    Client.resume()
-    client = Client.instances[0]
-    Client.http_client = httpclient.AsyncHTTPClient()
-    
-
-    Torrent.client = client
 
     def got_interrupt_signal(signum=None, frame=None):
         logging.info('got quit signal ... saving quick resume')
@@ -206,6 +208,7 @@ if __name__ == "__main__":
             ip_port_arr = ip_port.split(':')
             bootstrap_ip_ports.append((ip_port_arr[0],ip_port_arr[1]))
 
+    #let_the_streaming_begin(io_loop, bootstrap_ip_ports)
     if len(bootstrap_ip_ports) == 0:
         bht.get_dht_peers_from_torrent(options.bootstrap_torrent or "bootstrap.torrent", partial(let_the_streaming_begin, io_loop))
     else:
