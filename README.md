@@ -5,10 +5,13 @@ To setup:
 git submodule init
 git submodule update
 
-cd dht_bootstrapper; git checkout HEAD; git pull; cd ..
-cd dht_tornado; git checkout HEAD; git pull; cd ..
-cd ktorrent; git checkout HEAD; git pull; cd ..
-cd tornado; git checkout HEAD; git pull; cd ..
+cd dht_bootstrapper; git checkout master; git pull; cd ..
+
+cd dht_tornado; git checkout master; git pull; cd ..
+
+cd ktorrent; git checkout master; git pull; cd ..
+
+cd tornado; git checkout master; git pull; cd ..
 
 easy_install virtualenv
 virtualenv _install
