@@ -87,7 +87,7 @@ class BTApplication(object):
     def log_request(self, handler):
         if options.verbose > 1:
             request_time = 1000.0 * handler.request.request_time()
-            logging.info("%s %.2fms", 
+            logging.info("%s %.2fms",
                          handler._request_summary(), request_time)
 
 
@@ -171,14 +171,14 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     settings['log_function'] = request_logger
     frontend_application = tornado.web.Application(frontend_routes, **settings)
     frontend_server = tornado.httpserver.HTTPServer(frontend_application, io_loop=io_loop)
-    Connection.frontend_server = frontend_server  
+    Connection.frontend_server = frontend_server
 
     try:
         frontend_server.bind(options.frontend_port, '')
         frontend_server.start()
         #logging.info('started frontend server')
     except:
-        logging.error('could not start frontend server')   
+        logging.error('could not start frontend server')
 
 
     btserver = BTProtocolServer(application, io_loop=io_loop)
@@ -186,12 +186,12 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     btserver.start()
 
     logging.info('started btserver')
-    logging.info('\n\n')    
-  
+    logging.info('\n\n')
+
 
     Client.resume()
     client = Client.instances[0]
-    Client.http_client = httpclient.AsyncHTTPClient()  
+    Client.http_client = httpclient.AsyncHTTPClient()
     Torrent.client = client
 
     tornado.ioloop.PeriodicCallback( Connection.make_piece_request, 1000 * 1, io_loop=io_loop ).start()
@@ -220,7 +220,7 @@ def let_the_streaming_begin(io_loop, bootstrap_ip_ports):
     dht_frontend_application = tornado.web.Application(dht_frontend_routes, **settings)
     dht_frontend_server = tornado.httpserver.HTTPServer(dht_frontend_application, io_loop=io_loop)
     dht_frontend_server.bind(options.dht_frontend_port, '')
-    dht_frontend_server.start()    
+    dht_frontend_server.start()
 
     dhttornado.IndexHandler.register_dht(dht)
 
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         bht.get_dht_peers_from_torrent(options.bootstrap_torrent or "bootstrap.torrent", partial(let_the_streaming_begin, io_loop))
     else:
         let_the_streaming_begin(io_loop, bootstrap_ip_ports)
-    
-    
+
+
 
 
